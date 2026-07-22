@@ -65,7 +65,12 @@ def clean_dataset(df: pd.DataFrame, table_name: str) -> pd.DataFrame:
     for col in TIME_COLUMNS.get(table_name, []):
         if col in df.columns:
             df[col] = df[col].apply(time_to_seconds)
-    df = df.drop_duplicates()
+
+    # Remove duplicates 
+    if table_name == "lap_times":
+        df = df.drop_duplicates(subset=["race_id", "driver_id", "lap"], keep="first")
+    else:
+        df = df.drop_duplicates()
     return df
 
 
