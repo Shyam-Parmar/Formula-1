@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Formula 1 database ERD</title>
+<style>
+  :root {
+    --surface-0: #f7f6f2;
+    --surface-1: #f1efe8;
+    --surface-2: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-accent: #185fa5;
+    --border: #d8d6cd;
+    --border-strong: #b4b2a9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0: #1c1c1a;
+      --surface-1: #2c2c2a;
+      --surface-2: #353532;
+      --text-primary: #f1efe8;
+      --text-secondary: #b4b2a9;
+      --text-accent: #85b7eb;
+      --border: #444441;
+      --border-strong: #5f5e5a;
+    }
+  }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--surface-0);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+  }
+  .hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  svg { max-width: 900px; }
+</style>
+</head>
+<body>
+<div class="hint">Click a table to highlight its connections. Click again to reset.</div>
+<svg id="erd" width="100%" viewBox="0 0 760 572" role="img">
+<title>Formula 1 database ERD</title>
+<desc>Interactive diagram of 14 tables. Races sits at the top center connecting to circuits, seasons, and every race level table below.</desc>
+</svg>
+<script>
+const tables = [
+{id:'circuits',x:20,y:47,w:150,h:70,attrs:[['circuit_id','PK'],['name','']]},
+{id:'seasons',x:210,y:56,w:150,h:52,attrs:[['year','PK']]},
+{id:'races',x:400,y:20,w:150,h:124,attrs:[['race_id','PK'],['circuit_id','FK'],['year','FK'],['name',''],['date','']]},
+{id:'drivers',x:590,y:47,w:150,h:70,attrs:[['driver_id','PK'],['surname','']]},
+{id:'constructors',x:20,y:201,w:150,h:70,attrs:[['constructor_id','PK'],['name','']]},
+{id:'status',x:210,y:201,w:150,h:70,attrs:[['status_id','PK'],['status','']]},
+{id:'results',x:400,y:174,w:150,h:124,attrs:[['result_id','PK'],['race_id','FK'],['driver_id','FK'],['constructor_id','FK'],['status_id','FK']]},
+{id:'qualifying',x:590,y:183,w:150,h:106,attrs:[['qualify_id','PK'],['race_id','FK'],['driver_id','FK'],['constructor_id','FK']]},
+{id:'sprint_results',x:20,y:328,w:150,h:106,attrs:[['result_id','PK'],['race_id','FK'],['driver_id','FK'],['constructor_id','FK']]},
+{id:'lap_times',x:210,y:337,w:150,h:88,attrs:[['race_id','PK,FK'],['driver_id','PK,FK'],['lap','PK']]},
+{id:'pit_stops',x:400,y:337,w:150,h:88,attrs:[['race_id','PK,FK'],['driver_id','PK,FK'],['stop','PK']]},
+{id:'driver_standings',x:590,y:337,w:150,h:88,attrs:[['driver_standings_id','PK'],['race_id','FK'],['driver_id','FK']]},
+{id:'constructor_standings',x:20,y:464,w:150,h:88,attrs:[['constructor_standings_id','PK'],['race_id','FK'],['constructor_id','FK']]},
+{id:'constructor_results',x:210,y:464,w:150,h:88,attrs:[['constructor_results_id','PK'],['race_id','FK'],['constructor_id','FK']]}
+];
+const edges = [
+['races','circuits'],['races','seasons'],['races','results'],['races','qualifying'],
+['races','sprint_results'],['races','lap_times'],['races','pit_stops'],
+['races','driver_standings'],['races','constructor_standings'],['races','constructor_results'],
+['drivers','results'],['drivers','qualifying'],['drivers','sprint_results'],
+['drivers','lap_times'],['drivers','pit_stops'],['drivers','driver_standings'],
+['constructors','results'],['constructors','qualifying'],['constructors','sprint_results'],
+['constructors','constructor_standings'],['constructors','constructor_results'],
+['status','results']
+];
+const byId = Object.fromEntries(tables.map(t=>[t.id,t]));
+const adj = {};
+tables.forEach(t=>adj[t.id]=new Set());
+edges.forEach(([a,b])=>{adj[a].add(b);adj[b].add(a);});
+const svg = document.getElementById('erd');
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+const edgeGroup = el('g',{});
+const nodeGroup = el('g',{});
+svg.appendChild(edgeGroup);
+svg.appendChild(nodeGroup);
+function cx(t){return t.x+t.w/2;}
+function cy(t){return t.y+t.h/2;}
+edges.forEach(([a,b])=>{
+  const ta=byId[a], tb=byId[b];
+  const line = el('line',{x1:cx(ta),y1:cy(ta),x2:cx(tb),y2:cy(tb)});
+  line.style.stroke = 'var(--border-strong)';
+  line.style.strokeWidth = '1';
+  line.id = 'edge-'+a+'-'+b;
+  edgeGroup.appendChild(line);
+});
+tables.forEach(t=>{
+  const g = el('g',{id:'node-'+t.id,style:'cursor:pointer'});
+  const rect = el('rect',{x:t.x,y:t.y,width:t.w,height:t.h,rx:'8'});
+  rect.style.fill = 'var(--surface-2)';
+  rect.style.stroke = 'var(--border-strong)';
+  rect.style.strokeWidth = '1';
+  g.appendChild(rect);
+  const divider = el('line',{x1:t.x,y1:t.y+24,x2:t.x+t.w,y2:t.y+24});
+  divider.style.stroke = 'var(--border)';
+  divider.style.strokeWidth = '0.5';
+  g.appendChild(divider);
+  const title = el('text',{x:t.x+10,y:t.y+12,'font-size':'13','font-weight':'500','dominant-baseline':'central'});
+  title.style.fill = 'var(--text-primary)';
+  title.textContent = t.id;
+  g.appendChild(title);
+  t.attrs.forEach((a,i)=>{
+    const ry = t.y+24+i*18+9;
+    const badge = el('text',{x:t.x+10,y:ry,'font-size':'11','dominant-baseline':'central'});
+    badge.style.fill = 'var(--text-accent)';
+    badge.textContent = a[1];
+    g.appendChild(badge);
+    const name = el('text',{x:t.x+62,y:ry,'font-size':'11','dominant-baseline':'central'});
+    name.style.fill = 'var(--text-secondary)';
+    name.textContent = a[0];
+    g.appendChild(name);
+  });
+  g.addEventListener('click',()=>selectTable(t.id));
+  nodeGroup.appendChild(g);
+});
+let selected = null;
+function selectTable(id){
+  selected = (selected===id) ? null : id;
+  tables.forEach(t=>{
+    const g = document.getElementById('node-'+t.id);
+    const connected = selected && (t.id===selected || adj[selected].has(t.id));
+    g.style.opacity = (!selected || connected) ? '1' : '0.2';
+    const rect = g.querySelector('rect');
+    rect.style.stroke = t.id===selected ? 'var(--text-accent)' : 'var(--border-strong)';
+    rect.style.strokeWidth = t.id===selected ? '2' : '1';
+  });
+  edges.forEach(([a,b])=>{
+    const line = document.getElementById('edge-'+a+'-'+b);
+    const touches = selected && (a===selected || b===selected);
+    line.style.stroke = touches ? 'var(--text-accent)' : 'var(--border-strong)';
+    line.style.strokeWidth = touches ? '2' : '1';
+    line.style.opacity = (!selected || touches) ? '1' : '0.15';
+  });
+}
+</script>
+</body>
+</html>
