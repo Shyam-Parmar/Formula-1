@@ -1,6 +1,6 @@
 # Formula 1
 
-A project for analyzing and working with Formula 1 race data using Python.
+A project for analyzing and working with Formula 1 race data using Python and SQL.
 
 ## Data Source
 
